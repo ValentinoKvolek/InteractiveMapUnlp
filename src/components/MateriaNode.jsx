@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react'
-import { ESTADOS } from '../data/materias'
+import { ESTADOS } from '../hooks/useCarrera'
 
 const ESTADO_STYLE = {
   [ESTADOS.BLOQUEADA]: {
@@ -38,6 +38,15 @@ const ESTADO_STYLE = {
     label: 'Regular',
     glow: '0 0 12px rgba(249,115,22,0.4)',
   },
+  [ESTADOS.FINAL_PENDIENTE]: {
+    bg: '#2e1065',
+    border: '#a855f7',
+    text: '#e9d5ff',
+    badge: { bg: '#7e22ce', text: '#e9d5ff' },
+    icon: '⏳',
+    label: 'Final pendiente',
+    glow: '0 0 14px rgba(168,85,247,0.45)',
+  },
   [ESTADOS.APROBADA]: {
     bg: '#052e16',
     border: '#22c55e',
@@ -50,7 +59,7 @@ const ESTADO_STYLE = {
 }
 
 export function MateriaNode({ data }) {
-  const { materia, estado, onAvanzar, puedeRendirFinal } = data
+  const { materia, estado, onAvanzar, puedeRendirFinal, correlativasFaltantes } = data
   const cfg = ESTADO_STYLE[estado] || ESTADO_STYLE[ESTADOS.BLOQUEADA]
   const bloqueada = estado === ESTADOS.BLOQUEADA
 
@@ -91,27 +100,44 @@ export function MateriaNode({ data }) {
         </div>
 
         {/* Nombre */}
-        <p style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: cfg.text,
-          lineHeight: 1.35,
-          margin: 0,
-        }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: cfg.text, lineHeight: 1.35, margin: 0 }}>
           {materia.nombre}
         </p>
 
-        {/* Aviso de final */}
+        {/* Regular: aviso de si puede rendir */}
         {estado === ESTADOS.REGULAR && (
           <div style={{
-            marginTop: 6,
-            fontSize: 10,
-            padding: '3px 6px',
-            borderRadius: 6,
+            marginTop: 6, fontSize: 10, padding: '3px 6px', borderRadius: 6,
             background: puedeRendirFinal ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
             color: puedeRendirFinal ? '#86efac' : '#fca5a5',
           }}>
             {puedeRendirFinal ? '✓ Podés rendir el final' : '✗ Faltan correlativas para rendir'}
+          </div>
+        )}
+
+        {/* Final pendiente: muestra qué correlativas faltan acreditar */}
+        {estado === ESTADOS.FINAL_PENDIENTE && (
+          <div style={{ marginTop: 6 }}>
+            <div style={{
+              fontSize: 10, padding: '3px 6px', borderRadius: 6,
+              background: 'rgba(239,68,68,0.15)', color: '#fca5a5', marginBottom: 4,
+            }}>
+              ⏳ Final rendido · no acreditado aún
+            </div>
+            {correlativasFaltantes && correlativasFaltantes.length > 0 && (
+              <div style={{ fontSize: 9, color: '#94a3b8' }}>
+                Debés el final de:{' '}
+                {correlativasFaltantes.map(m => (
+                  <span key={m.id} style={{
+                    display: 'inline-block', background: '#1e293b',
+                    borderRadius: 4, padding: '1px 4px', marginRight: 2, marginTop: 2,
+                    color: '#a855f7',
+                  }}>
+                    {m.id}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

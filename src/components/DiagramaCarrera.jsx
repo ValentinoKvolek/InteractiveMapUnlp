@@ -13,6 +13,7 @@ import {
 import '@xyflow/react/dist/style.css'
 import dagre from '@dagrejs/dagre'
 import { ESTADOS } from '../hooks/useCarrera'
+import { useTheme } from '../context/ThemeContext'
 import { MateriaNode } from './MateriaNode'
 
 const NODE_W = 200
@@ -35,12 +36,12 @@ function buildLayout(materias) {
 }
 
 const EDGE_COLOR = {
-  [ESTADOS.APROBADA]: '#22c55e',
-  [ESTADOS.REGULAR]: '#f97316',
-  [ESTADOS.CURSANDO]: '#f59e0b',
-  [ESTADOS.DISPONIBLE]: '#3b82f6',
-  [ESTADOS.BLOQUEADA]: '#334155',
-  [ESTADOS.FINAL_PENDIENTE]: '#a855f7',
+  [ESTADOS.APROBADA]: '#2d5a2d',
+  [ESTADOS.REGULAR]: '#8b1a1a',
+  [ESTADOS.CURSANDO]: '#7a4a1a',
+  [ESTADOS.DISPONIBLE]: '#5c2020',
+  [ESTADOS.BLOQUEADA]: '#2a1515',
+  [ESTADOS.FINAL_PENDIENTE]: '#b22222',
 }
 
 const nodeTypes = { materia: MateriaNode }
@@ -55,7 +56,7 @@ function getIdsParaFoco(progreso, materias) {
   return materias.map(m => m.id)
 }
 
-function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes }) {
+function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes, theme: t }) {
   const { fitView } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
@@ -87,7 +88,7 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
     for (const m of materias) {
       for (const corrId of m.correlativasCursar) {
         const sourceEstado = progreso[corrId] || ESTADOS.BLOQUEADA
-        const color = EDGE_COLOR[sourceEstado]
+        const color = t.edges[sourceEstado] || t.border
         newEdges.push({
           id: `${corrId}->${m.id}`,
           source: corrId,
@@ -114,7 +115,7 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
         fitView({ nodes: idsFoco.map(id => ({ id })), duration: 600, padding: 0.35, maxZoom: 1.1 })
       }, 80)
     }
-  }, [materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes, positions, setNodes, setEdges, fitView])
+  }, [materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes, positions, setNodes, setEdges, fitView, t])
 
   return (
     <ReactFlow
@@ -127,19 +128,15 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
       maxZoom={2}
       proOptions={{ hideAttribution: true }}
     >
-      <Background variant="dots" color="#1e293b" gap={24} size={1.5} style={{ background: '#0a1628' }} />
-      <Controls style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, overflow: 'hidden' }} />
+      <Background variant="dots" color={t.diagramaDots} gap={28} size={1} style={{ background: t.diagramaBg }} />
+      <Controls style={{ background: t.controlsBg, border: `1px solid ${t.border}`, borderRadius: 6, overflow: 'hidden' }} />
       <MiniMap
         nodeColor={node => {
           const est = node.data?.estado
-          return est === ESTADOS.APROBADA ? '#22c55e'
-            : est === ESTADOS.REGULAR ? '#f97316'
-            : est === ESTADOS.CURSANDO ? '#f59e0b'
-            : est === ESTADOS.DISPONIBLE ? '#3b82f6'
-            : '#1e293b'
+          return t.estados[est]?.border || t.border
         }}
-        style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-        maskColor="rgba(0,0,0,0.5)"
+        style={{ background: t.minimapBg, border: `1px solid ${t.border}`, borderRadius: 6 }}
+        maskColor={t.name === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(200,180,180,0.4)'}
         pannable
         zoomable
       />
@@ -148,6 +145,7 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
 }
 
 export function DiagramaCarrera({ materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes }) {
+  const { theme } = useTheme()
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlowProvider>
@@ -157,6 +155,7 @@ export function DiagramaCarrera({ materias, progreso, avanzarEstado, puedeRendir
           avanzarEstado={avanzarEstado}
           puedeRendirFinal={puedeRendirFinal}
           correlativasFinalFaltantes={correlativasFinalFaltantes}
+          theme={theme}
         />
       </ReactFlowProvider>
     </div>

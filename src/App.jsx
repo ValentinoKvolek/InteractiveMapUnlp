@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { useCarrera, ESTADOS } from './hooks/useCarrera'
+import { useCarrera } from './hooks/useCarrera'
 import { DiagramaCarrera } from './components/DiagramaCarrera'
 import { SelectorCarrera } from './components/SelectorCarrera'
+import { useTheme } from './context/ThemeContext'
+import logo from './assets/logo.png'
 import * as LI from './data/licenciaturaInformatica'
 import * as LS from './data/licenciaturaSistemas'
 
@@ -16,121 +18,138 @@ export default function App() {
     setCarreraId(id)
   }
 
-  function cambiarCarrera() {
-    setCarreraId(null)
-  }
+  if (!carreraId) return <SelectorCarrera onSeleccionar={seleccionar} />
 
-  if (!carreraId) {
-    return <SelectorCarrera onSeleccionar={seleccionar} />
-  }
-
-  const { MATERIAS, SEMESTRES_INFO, CARRERA_INFO } = DATOS_CARRERA[carreraId]
+  const { MATERIAS, CARRERA_INFO } = DATOS_CARRERA[carreraId]
   return (
     <MapaCarrera
       materias={MATERIAS}
-      semestresInfo={SEMESTRES_INFO}
       carreraInfo={CARRERA_INFO}
-      onCambiarCarrera={cambiarCarrera}
+      onCambiarCarrera={() => setCarreraId(null)}
     />
   )
 }
 
-function MapaCarrera({ materias, semestresInfo, carreraInfo, onCambiarCarrera }) {
+function MapaCarrera({ materias, carreraInfo, onCambiarCarrera }) {
+  const { theme: t, toggleTheme } = useTheme()
   const { progreso, avanzarEstado, resetear, puedeRendirFinal, correlativasFinalFaltantes, stats } = useCarrera(materias, carreraInfo.id)
   const [confirmarReset, setConfirmarReset] = useState(false)
 
+  const faltantes = stats.total - stats.aprobadas
   const porcentaje = Math.round((stats.aprobadas / stats.total) * 100)
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: t.root, fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}>
+      <header style={{ flexShrink: 0, background: t.header, borderBottom: `1px solid ${t.border}`, padding: '14px 24px 12px' }}>
 
-      {/* Header */}
-      <div style={{
-        flexShrink: 0,
-        background: 'rgba(15,23,42,0.97)',
-        borderBottom: '1px solid #1e293b',
-        padding: '10px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        flexWrap: 'wrap',
-        zIndex: 10,
-      }}>
-        {/* Título + cambiar carrera */}
-        <div style={{ flex: 1, minWidth: 200, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#f1f5f9', letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                background: carreraInfo.color + '25',
-                color: carreraInfo.color,
-                border: `1px solid ${carreraInfo.color}50`,
-                borderRadius: 5,
-                fontSize: 10,
-                fontWeight: 700,
-                padding: '1px 6px',
-                letterSpacing: '0.5px',
-              }}>
+        {/* Fila superior */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <button onClick={onCambiarCarrera} style={ghostBtn(t)}>← volver</button>
+            <img
+              src={logo}
+              alt="Facultad de Informática UNLP"
+              style={{
+                width: 34, height: 34,
+                borderRadius: '50%',
+                opacity: t.name === 'dark' ? 0.85 : 1,
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: t.accent, letterSpacing: '1.5px', textTransform: 'uppercase' }}>
                 {carreraInfo.id}
               </span>
-              {carreraInfo.nombre}
-            </div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 1 }}>
-              Plan 2021 · Click en una materia para avanzar su estado
+              <span style={{ fontSize: 14, fontWeight: 600, color: t.textPrimary, letterSpacing: '-0.3px' }}>
+                {carreraInfo.nombre}
+              </span>
+              <span style={{ fontSize: 11, color: t.textMuted }}>· Plan 2021</span>
             </div>
           </div>
-          <button
-            onClick={onCambiarCarrera}
-            style={{ fontSize: 11, background: 'transparent', color: '#475569', border: '1px solid #1e293b', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            ← carreras
-          </button>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {confirmarReset ? (
+              <>
+                <button
+                  onClick={() => { resetear(); setConfirmarReset(false) }}
+                  style={{ ...ghostBtn(t), color: t.accentText, borderColor: t.accent }}
+                >
+                  Confirmar reset
+                </button>
+                <button onClick={() => setConfirmarReset(false)} style={ghostBtn(t)}>Cancelar</button>
+              </>
+            ) : (
+              <button onClick={() => setConfirmarReset(true)} style={ghostBtn(t)}>Resetear</button>
+            )}
+          </div>
         </div>
 
         {/* Stats */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-          <StatBadge color="#22c55e" bg="#052e16" label="Aprobadas" value={stats.aprobadas} />
-          <StatBadge color="#a855f7" bg="#2e1065" label="Final pend." value={stats.pendientes} />
-          <StatBadge color="#f97316" bg="#431407" label="Regulares" value={stats.regulares} />
-          <StatBadge color="#f59e0b" bg="#422006" label="Cursando" value={stats.cursando} />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 8, padding: '5px 12px' }}>
-            <div style={{ width: 72, height: 5, background: '#334155', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ width: `${porcentaje}%`, height: '100%', background: carreraInfo.color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14, flexWrap: 'wrap', background: t.card === '#FFFFFF' ? t.root : t.root, borderRadius: 8, overflow: 'hidden' }}>
+          <StatItem t={t} value={faltantes}       label="faltantes"       accent />
+          <StatDivider t={t} />
+          <StatItem t={t} value={stats.aprobadas} label="aprobadas" />
+          <StatDivider t={t} />
+          <StatItem t={t} value={stats.regulares} label="regularizadas" />
+          <StatDivider t={t} />
+          <StatItem t={t} value={stats.pendientes} label="final pendiente" />
+          <StatDivider t={t} />
+          <StatItem t={t} value={stats.cursando}  label="cursando" />
+          <div style={{ flex: 1 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 16 }}>
+            <div style={{ width: 100, height: 4, background: t.border, borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: `${porcentaje}%`, height: '100%', background: t.accent, borderRadius: 2, transition: 'width 0.5s ease' }} />
             </div>
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#94a3b8' }}>{porcentaje}%</span>
+            <span style={{ fontSize: 12, color: t.textSecondary, fontVariantNumeric: 'tabular-nums', minWidth: 30 }}>
+              {porcentaje}%
+            </span>
           </div>
-
-          {confirmarReset ? (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button onClick={() => { resetear(); setConfirmarReset(false) }}
-                style={{ ...btnStyle, background: '#7f1d1d', color: '#fca5a5', border: 'none' }}>
-                Confirmar
-              </button>
-              <button onClick={() => setConfirmarReset(false)} style={btnStyle}>Cancelar</button>
-            </div>
-          ) : (
-            <button onClick={() => setConfirmarReset(true)} style={btnStyle}>Resetear</button>
-          )}
         </div>
 
         {/* Leyenda */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', width: '100%', paddingTop: 8, borderTop: '1px solid #1e293b' }}>
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
           {[
-            { icon: '🔒', label: 'Bloqueada', color: '#475569' },
-            { icon: '📋', label: 'Disponible', color: '#3b82f6' },
-            { icon: '📖', label: 'Cursando', color: '#f59e0b' },
-            { icon: '📝', label: 'Regular', color: '#f97316' },
-            { icon: '⏳', label: 'Final pendiente · rendido pero no acreditado', color: '#a855f7' },
-            { icon: '✅', label: 'Aprobada', color: '#22c55e' },
-          ].map(({ icon, label, color }) => (
-            <span key={label} style={{ fontSize: 11, color, display: 'flex', alignItems: 'center', gap: 4 }}>
-              {icon} {label}
+            { key: 'bloqueada',        label: 'Bloqueada' },
+            { key: 'disponible',       label: 'Disponible' },
+            { key: 'cursando',         label: 'Cursando' },
+            { key: 'regular',          label: 'Regular' },
+            { key: 'final_pendiente',  label: 'Final pendiente' },
+            { key: 'aprobada',         label: 'Aprobada' },
+          ].map(({ key, label }) => (
+            <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: t.textMuted }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.estados[key].border, display: 'inline-block', flexShrink: 0 }} />
+              {label}
             </span>
           ))}
         </div>
-      </div>
+      </header>
 
-      {/* Diagrama */}
+      {/* Botón flotante de tema */}
+      <button
+        onClick={toggleTheme}
+        title={t.name === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          left: 24,
+          zIndex: 100,
+          background: t.header,
+          color: t.textSecondary,
+          border: `1px solid ${t.border}`,
+          borderRadius: 8,
+          padding: '8px 14px',
+          fontSize: 11,
+          cursor: 'pointer',
+          letterSpacing: '0.1px',
+          boxShadow: t.name === 'dark'
+            ? '0 2px 12px rgba(0,0,0,0.5)'
+            : '0 2px 12px rgba(0,0,0,0.1)',
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+      >
+        {t.name === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+      </button>
+
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <DiagramaCarrera
           materias={materias}
@@ -144,21 +163,33 @@ function MapaCarrera({ materias, semestresInfo, carreraInfo, onCambiarCarrera })
   )
 }
 
-function StatBadge({ color, bg, label, value }) {
+function StatItem({ t, value, label, accent }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: bg, border: `1px solid ${color}30`, borderRadius: 8, padding: '4px 10px' }}>
-      <span style={{ fontWeight: 700, fontSize: 15, color, lineHeight: 1 }}>{value}</span>
-      <span style={{ fontSize: 11, color: color + 'cc' }}>{label}</span>
+    <div style={{ textAlign: 'center', padding: '4px 16px 4px 0' }}>
+      <div style={{ fontSize: 24, fontWeight: 700, color: accent ? t.textPrimary : t.textSecondary, lineHeight: 1, letterSpacing: '-1px' }}>
+        {value}
+      </div>
+      <div style={{ fontSize: 10, color: t.textMuted, marginTop: 3, letterSpacing: '0.2px' }}>
+        {label}
+      </div>
     </div>
   )
 }
 
-const btnStyle = {
-  fontSize: 11,
-  background: '#1e293b',
-  color: '#94a3b8',
-  border: '1px solid #334155',
-  borderRadius: 6,
-  padding: '4px 10px',
-  cursor: 'pointer',
+function StatDivider({ t }) {
+  return <div style={{ width: 1, height: 32, background: t.border, margin: '0 16px 0 0', flexShrink: 0 }} />
+}
+
+function ghostBtn(t) {
+  return {
+    fontSize: 11,
+    background: 'transparent',
+    color: t.textMuted,
+    border: `1px solid ${t.border}`,
+    borderRadius: 5,
+    padding: '5px 11px',
+    cursor: 'pointer',
+    letterSpacing: '0.1px',
+    transition: 'color 0.15s, border-color 0.15s',
+  }
 }

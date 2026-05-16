@@ -56,7 +56,7 @@ function getIdsParaFoco(progreso, materias) {
   return materias.map(m => m.id)
 }
 
-function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes, theme: t }) {
+function FlowInner({ materias, progreso, fijarEstado, puedeRendirFinal, correlativasFinalFaltantes, theme: t }) {
   const { fitView } = useReactFlow()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
@@ -78,11 +78,12 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
       data: {
         materia: m,
         estado: progreso[m.id],
-        onAvanzar: () => avanzarEstado(m.id),
+        onFijar: (estado) => fijarEstado(m.id, estado),
         puedeRendirFinal: puedeRendirFinal(m.id),
         correlativasFaltantes: correlativasFinalFaltantes(m.id),
       },
     }))
+
 
     const newEdges = []
     for (const m of materias) {
@@ -115,7 +116,7 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
         fitView({ nodes: idsFoco.map(id => ({ id })), duration: 600, padding: 0.35, maxZoom: 1.1 })
       }, 80)
     }
-  }, [materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes, positions, setNodes, setEdges, fitView, t])
+  }, [materias, progreso, fijarEstado, puedeRendirFinal, correlativasFinalFaltantes, positions, setNodes, setEdges, fitView, t])
 
   return (
     <ReactFlow
@@ -144,7 +145,7 @@ function FlowInner({ materias, progreso, avanzarEstado, puedeRendirFinal, correl
   )
 }
 
-export function DiagramaCarrera({ materias, progreso, avanzarEstado, puedeRendirFinal, correlativasFinalFaltantes }) {
+export function DiagramaCarrera({ materias, progreso, fijarEstado, puedeRendirFinal, correlativasFinalFaltantes }) {
   const { theme } = useTheme()
   return (
     <div style={{ width: '100%', height: '100%' }}>
@@ -152,7 +153,7 @@ export function DiagramaCarrera({ materias, progreso, avanzarEstado, puedeRendir
         <FlowInner
           materias={materias}
           progreso={progreso}
-          avanzarEstado={avanzarEstado}
+          fijarEstado={fijarEstado}
           puedeRendirFinal={puedeRendirFinal}
           correlativasFinalFaltantes={correlativasFinalFaltantes}
           theme={theme}
